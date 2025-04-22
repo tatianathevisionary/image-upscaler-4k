@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:latest
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -34,29 +34,59 @@ ENV CUDA_VISIBLE_DEVICES=0
 ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:4096
 ENV CUDA_LAUNCH_BLOCKING=0
 ENV TORCH_CUDA_ARCH_LIST="8.6"
-ENV CUDA_HOME=/usr/local/cuda
-ENV PATH=${CUDA_HOME}/bin:${PATH}
-ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
 
 # Set up cache directories
 RUN mkdir -p /workspace/.cache/torch/hub/checkpoints && \
     chmod -R 777 /workspace/.cache
 
-# Verify CUDA installation and GPU access
-RUN python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA is not available'"
+# Basic verification that PyTorch is installed
+RUN python3 -c "import torch; print(f'PyTorch version: {torch.__version__}')"
 
-# Healthcheck with more detailed diagnostics
+# Healthcheck script
+COPY <<'EOF' /workspace/healthcheck.py
+import torch
+import os
+import sys
+
+def run_checks():
+    try:
+        print('Checking PyTorch installation...')
+        print(f'PyTorch version: {torch.__version__}')
+        
+        if not torch.cuda.is_available():
+            print('CUDA is not available')
+            sys.exit(1)
+            
+        print(f'CUDA available: {torch.cuda.is_available()}')
+        print(f'GPU devices: {torch.cuda.device_count()}')
+        print(f'GPU name: {torch.cuda.get_device_name(0)}')
+        
+        model_path = os.getenv('MODEL_PATH')
+        if not os.path.exists(model_path):
+            print(f'Model not found at {model_path}')
+            sys.exit(1)
+            
+        print('Testing GPU memory allocation...')
+        t = torch.zeros(1).cuda()
+        del t
+        torch.cuda.empty_cache()
+        
+        print('All checks passed successfully!')
+        sys.exit(0)
+    except Exception as e:
+        print(f'Check failed: {str(e)}')
+        sys.exit(1)
+
+if __name__ == '__main__':
+    run_checks()
+EOF
+
+# Make healthcheck script executable
+RUN chmod +x /workspace/healthcheck.py
+
+# Healthcheck configuration
 HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-    CMD python3 -c "\
-    import torch; \
-    import os; \
-    assert torch.cuda.is_available(), 'CUDA not available'; \
-    assert torch.cuda.device_count() > 0, 'No GPU devices'; \
-    assert os.path.exists('${MODEL_PATH}'), 'Model not found'; \
-    t = torch.zeros(1).cuda(); \
-    del t; \
-    torch.cuda.empty_cache(); \
-    print('Healthcheck passed')"
+    CMD python3 /workspace/healthcheck.py
 
 # Default command with increased logging
 CMD [ "python3", "-u", "runpod_handler.py" ] 

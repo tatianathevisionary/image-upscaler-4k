@@ -1,6 +1,97 @@
 # AI Image Upscaler 4K
 
-A powerful image upscaling tool using Real-ESRGAN to enhance images to 4K quality. This project supports both local processing and cloud GPU processing through RunPod.io.
+A Real-ESRGAN based image upscaler optimized for RTX A5000 GPUs on RunPod.
+
+## RunPod Setup Instructions
+
+### 1. Template Setup
+
+1. Go to [RunPod Dashboard](https://www.runpod.io/console/templates)
+2. Click on "New Template"
+3. Fill in the template settings:
+   ```
+   Name: AI Image Upscaler 4K
+   Container Image: registry.runpod.io/tatianathevisionary-image-upscaler-4k
+   ```
+
+4. Set Environment Variables:
+   ```
+   CUDA_VISIBLE_DEVICES=0
+   PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:4096
+   CUDA_LAUNCH_BLOCKING=0
+   ```
+
+5. Container Settings:
+   - Container Disk: 10GB
+   - Volume Path: /workspace
+   - Volume Size: 10GB
+
+### 2. Worker Configuration
+
+Select these specifications for optimal performance:
+- GPU: RTX A5000
+- vCPU: 16
+- RAM: 62GB
+- Container Disk: 10GB
+- Volume: 10GB
+
+### 3. Endpoint Setup
+
+1. Go to [RunPod Serverless](https://www.runpod.io/console/serverless)
+2. Click on your endpoint
+3. Update the configuration:
+   - Worker Type: GPU
+   - GPU Type: RTX A5000
+   - Flash Boot: Enabled
+   - Max Workers: 1
+   - Idle Timeout: 5 minutes
+   - Request Timeout: 300 seconds
+
+### 4. API Usage
+
+Example API request:
+```bash
+curl -X POST https://api.runpod.ai/v2/b9rcz8azd7gdp7/run \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -d '{"input":{"image":"base64_encoded_image_string"}}'
+```
+
+## Troubleshooting
+
+If the worker becomes unhealthy:
+
+1. Stop the current worker:
+   - Go to Workers tab
+   - Click "Stop" on the unhealthy worker
+
+2. Check logs for errors:
+   - Click on the worker ID
+   - Go to "Logs" tab
+   - Look for error messages
+
+3. Restart with clean state:
+   - Stop all workers
+   - Clear any pending jobs
+   - Start a new worker
+
+## Performance Optimization
+
+Current settings are optimized for RTX A5000:
+- Using TF32 for better performance
+- Half-precision (FP16) enabled
+- Tile size: 512x512
+- Memory-efficient mode enabled
+- cuDNN benchmarking enabled
+
+## Environment Variables
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| CUDA_VISIBLE_DEVICES | 0 | GPU device to use |
+| PYTORCH_CUDA_ALLOC_CONF | max_split_size_mb:4096 | Memory allocation settings |
+| CUDA_LAUNCH_BLOCKING | 0 | Async CUDA operations |
+| MODEL_PATH | /workspace/models/RealESRGAN_x4plus.pth | Model location |
 
 ## Features
 

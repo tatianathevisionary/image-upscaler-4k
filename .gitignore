@@ -16,9 +16,15 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Environment variables and config files
+.env
+config.json
+*.config.json
 
 # Virtual Environment
 venv/
@@ -27,6 +33,12 @@ ENV/
 # IDE
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Project specific
 .pod_id

@@ -37,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
     CMD python3 -c "import torch; import os; assert os.path.exists('${MODEL_PATH}'), 'Model not found'"
 
 # Start the handler
-CMD ["python3", "-u", "runpod_handler.py"] 
+CMD ["python3", "-u", "runpod_handler.py"]
